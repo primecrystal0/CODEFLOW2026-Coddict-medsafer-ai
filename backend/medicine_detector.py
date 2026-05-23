@@ -1,32 +1,32 @@
-import pytesseract
-from PIL import Image
+medicine_db = {
+    "Paracetamol": {
+        "risk": "Low",
+        "dosage": "500mg every 6–8 hours"
+    },
+    "Ibuprofen": {
+        "risk": "Medium",
+        "dosage": "200–400mg after food"
+    },
+    "Aspirin": {
+        "risk": "High",
+        "dosage": "75–150mg daily (doctor supervision required)"
+    },
+    "Warfarin": {
+        "risk": "High",
+        "dosage": "Strict medical supervision required"
+    }
+}
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-img = Image.open("medicine.jpg")
+def detect_medicines(text):
+    detected = []
+    dosages = []
+    risks = []
 
-text = pytesseract.image_to_string(img)
+    for med in medicine_db:
+        if med.lower() in text.lower():
+            detected.append(med)
+            dosages.append(medicine_db[med]["dosage"])
+            risks.append(medicine_db[med]["risk"])
 
-print("Extracted Text:")
-print(text)
-
-known_medicines = [
-    "Paracetamol",
-    "Ibuprofen",
-    "Aspirin",
-    "Warfarin"
-]
-
-detected = []
-
-for med in known_medicines:
-    if med.lower() in text.lower():
-        detected.append(med)
-
-print("\nDetected Medicines:")
-
-if detected:
-    for med in detected:
-        print("-", med)
-else:
-    print("No known medicine detected")
+    return detected, dosages, risks
