@@ -7,4 +7,5 @@ img = Image.open("medicine.jpg")
 
 text = pytesseract.image_to_string(img)
 
+print("Extracted Text:")
 print(text)
