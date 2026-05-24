@@ -1,112 +1,355 @@
+
+
+
+
+
 import streamlit as st
 import requests
-import pyttsx3
-import threading
 from PIL import Image
-import io
+import time
+import pyttsx3
+import tempfile
+import os
 
-# Must be the very first Streamlit command
-st.set_page_config(page_title="MedSafer AI", page_icon="💊", layout="centered")
+st.set_page_config(
+    page_title="MedSafer AI",
+    page_icon="💊",
+    layout="wide"
+)
 
-# --- CUSTOM CSS FOR ELDERLY UI ---
-# This makes everything massive and highly readable
 st.markdown("""
-    <style>
-    html, body, [class*="css"]  {
-        font-size: 22px !important;
-    }
-    h1 {
-        font-size: 45px !important;
-        color: #1E88E5;
-    }
-    h3 {
-        font-size: 30px !important;
-    }
-    .stButton>button {
-        width: 100%;
-        height: 80px;
-        font-size: 30px !important;
-        font-weight: bold;
-        background-color: #D32F2F !important;
-        color: white !important;
-        border-radius: 12px;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #B71C1C !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
 
-# --- TEXT-TO-SPEECH ENGINE ---
-def speak_warning(text):
-    """Runs the voice engine in the background so it doesn't freeze the screen."""
-    def _speak():
-        try:
-            engine = pyttsx3.init()
-            # Slow down the voice slightly for elderly comprehension
-            engine.setProperty('rate', 150) 
-            engine.say(text)
-            engine.runAndWait()
-        except Exception as e:
-            print(f"Voice engine failed: {e}")
-            
-    threading.Thread(target=_speak, daemon=True).start()
+html, body, [class*="css"] {
+    font-family: 'Segoe UI', sans-serif;
+}
 
-# --- APP LAYOUT ---
-st.title("💊 MedSafer AI")
-st.markdown("**Drug Safety Checker for Seniors**")
-st.write("---")
+.stApp {
+    background: linear-gradient(
+        135deg,
+        #0f172a,
+        #111827,
+        #020617
+    );
+    color: white;
+}
 
-# Inputs
-uploaded_file = st.file_uploader("📸 Upload a picture of your medicine bottle:", type=["jpg", "jpeg", "png"])
+.hero-title {
+    font-size: 68px;
+    font-weight: 800;
+    text-align: center;
+    color: #38bdf8;
+    margin-bottom: 10px;
+}
 
-col1, col2 = st.columns(2)
-with col1:
-    age = st.number_input("👤 Patient Age:", min_value=1, max_value=120, value=65)
-with col2:
-    disease = st.text_input("❤️ Current Health Condition:", placeholder="e.g., High Blood Pressure")
+.hero-subtitle {
+    text-align: center;
+    color: #cbd5e1;
+    font-size: 24px;
+    margin-bottom: 40px;
+}
 
-st.write("---")
+.card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 30px;
+    border-radius: 28px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0px 10px 35px rgba(0,0,0,0.5);
+}
 
-# The Giant Analyze Button
-if st.button("🔍 ANALYZE MEDICINE"):
-    if uploaded_file is None:
-        st.error("⚠️ Please upload an image of your medicine first.")
-    else:
-        with st.spinner("🤖 AI is reading the label... please wait..."):
+.result-card {
+    background: linear-gradient(
+        135deg,
+        #111827,
+        #1e293b
+    );
+
+    border: 2px solid #38bdf8;
+
+    padding: 30px;
+
+    border-radius: 28px;
+
+    margin-top: 20px;
+}
+
+.big-text {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.safe-box {
+    background: #052e16;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid #22c55e;
+    margin-top: 20px;
+}
+
+.warning-box {
+    background: #450a0a;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid #ef4444;
+    margin-top: 20px;
+}
+
+.footer {
+    text-align: center;
+    color: gray;
+    margin-top: 50px;
+    font-size: 18px;
+}
+
+.stButton>button {
+    background: linear-gradient(to right, #0ea5e9, #2563eb);
+    color: white;
+    border-radius: 15px;
+    border: none;
+    padding: 14px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+def text_to_speech(text):
+
+    engine = pyttsx3.init()
+
+    engine.setProperty('rate', 145)
+
+    temp_file = tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".mp3"
+    )
+
+    engine.save_to_file(text, temp_file.name)
+
+    engine.runAndWait()
+
+    return temp_file.name
+
+
+st.markdown(
+    "<div class='hero-title'>💊 MedSafer AI</div>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <div class='hero-subtitle'>
+    AI Medicine Detection & Elderly Safety Assistant
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+left, right = st.columns([1, 1])
+
+with left:
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    st.subheader("📸 Upload or Scan Medicine")
+
+    uploaded_file = st.file_uploader(
+        "Upload medicine image",
+        type=["png", "jpg", "jpeg"]
+    )
+
+    camera_file = st.camera_input(
+        "Or scan medicine live"
+    )
+
+    age = st.number_input(
+        "Patient Age",
+        min_value=1,
+        max_value=120,
+        value=65
+    )
+
+    disease = st.text_input(
+        "Existing Disease",
+        placeholder="Diabetes, BP, Asthma..."
+    )
+
+    emergency_mode = st.toggle(
+        "🚨 Elderly Emergency Mode"
+    )
+
+    analyze = st.button(
+        "🔍 Analyze Medicine",
+        use_container_width=True
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with right:
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+    st.subheader("🧠 AI Analysis")
+
+    image_source = uploaded_file if uploaded_file else camera_file
+
+    if image_source and analyze:
+
+        image = Image.open(image_source)
+
+        st.image(
+            image,
+            caption="Medicine Image",
+            use_container_width=True
+        )
+
+        with st.spinner("Analyzing medicine with AI..."):
+
+            time.sleep(1)
+
+            files = {
+                "image": image_source.getvalue()
+            }
+
+            data = {
+                "age": age,
+                "disease": disease
+            }
+
             try:
-                # Prepare the image and data to send to your Flask backend
-                files = {"image": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
-                data = {"age": age, "disease": disease}
-                
-                # Call your local backend API
-                response = requests.post("http://127.0.0.1:5000/check", files=files, data=data)
-                
+
+                response = requests.post(
+                    "http://127.0.0.1:5000/check",
+                    files=files,
+                    data=data,
+                    timeout=60
+                )
+
                 if response.status_code == 200:
-                    result = response.json()
-                    
-                    st.success("✅ Analysis Complete!")
-                    
-                    # 1. Show the extracted data cleanly
-                    st.subheader("🩺 What we found:")
-                    st.info(f"**Detected Medicine:** {', '.join(result.get('detected_medicines', [])) or 'None found'}")
-                    st.warning(f"**Standard Dosage:** {', '.join(result.get('dosages', [])) or 'Unknown'}")
-                    
-                    # 2. Show the AI Explanation
-                    st.subheader("🗣️ Doctor's Advice:")
-                    ai_text = result.get('ai_explanation', 'No advice generated.')
-                    st.write(ai_text)
-                    
-                    # 🔥 TRIGGER THE VOICE!
-                    speak_warning(ai_text)
-                    
-                    # 3. Hide the messy raw data for the judges in an expander
-                    with st.expander("🛠️ View Raw Scanner Data (For Judges)"):
-                        st.text(result.get('ocr_text', 'No text extracted.'))
-                        
+
+                    res = response.json()
+
+                    medicines = res.get(
+                        "detected_medicines",
+                        []
+                    )
+
+                    dosages = res.get(
+                        "dosages",
+                        []
+                    )
+
+                    risks = res.get(
+                        "risks",
+                        []
+                    )
+
+                    ai_text = res.get(
+                        "ai_explanation",
+                        "No AI response"
+                    )
+
+                    ocr_text = res.get(
+                        "ocr_text",
+                        ""
+                    )
+
+                    st.markdown(
+                        """
+                        <div class='result-card'>
+                        <div class='big-text'>
+                        ✅ Analysis Complete
+                        </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    for i in range(len(medicines)):
+
+                        st.markdown(
+                            f"""
+                            ### 💊 {medicines[i]}
+
+                            ## Dosage
+                            {dosages[i]}
+
+                            ## Risk
+                            {risks[i]}
+                            """
+                        )
+
+                    if emergency_mode:
+
+                        st.markdown(
+                            """
+                            <div class='warning-box'>
+                            🚨 Elderly mode enabled. Please consult a doctor before combining medicines.
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    else:
+
+                        st.markdown(
+                            """
+                            <div class='safe-box'>
+                            ✅ Standard medicine safety mode active.
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    with st.expander("📄 OCR Extracted Text"):
+
+                        st.write(ocr_text)
+
+                    st.markdown("## 🤖 AI Safety Advice")
+
+                    st.info(ai_text)
+
+                    if st.button("🔊 Read AI Advice"):
+
+                        audio_path = text_to_speech(ai_text)
+
+                        audio_file = open(audio_path, 'rb')
+
+                        st.audio(audio_file.read())
+
+                        audio_file.close()
+
+                        os.remove(audio_path)
+
                 else:
-                    st.error(f"Backend Error: {response.status_code}")
-                    
+
+                    st.error(
+                        "Backend returned an error"
+                    )
+
             except Exception as e:
-                st.error(f"Failed to connect to the backend server. Is it running? Error: {e}")
+
+                st.error(f"Connection Error: {e}")
+
+    else:
+
+        st.info(
+            "Upload or scan a medicine image to begin analysis."
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("---")
+
+
+st.markdown(
+    """
+    <div class='footer'>
+    🚀 Built for 36 Hour Hackathon | AI + OCR + Elderly Healthcare
+    </div>
+    """,
+    unsafe_allow_html=True
+)

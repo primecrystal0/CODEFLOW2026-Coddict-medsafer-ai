@@ -217,3 +217,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .env
+test.jpg
+uploads/
+*.csv
+*.xlsx
+.streamlit/
+.vscode/
+.idea/
