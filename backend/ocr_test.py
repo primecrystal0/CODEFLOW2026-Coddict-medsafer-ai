@@ -1,35 +1,28 @@
 import pytesseract
-from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+import cv2
+import numpy as np
 
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-img = Image.open("test.jpg")
 
-img = img.convert("L")
+def extract_text(image):
 
-contrast = ImageEnhance.Contrast(img)
-img = contrast.enhance(2.5)
+    img = np.array(image)
 
-sharpener = ImageEnhance.Sharpness(img)
-img = sharpener.enhance(2.0)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-img = img.filter(ImageFilter.MedianFilter())
+    # improve clarity
+    gray = cv2.bilateralFilter(gray, 9, 75, 75)
 
-img = ImageOps.autocontrast(img)
+    thresh = cv2.adaptiveThreshold(
+        gray,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        11,
+        2
+    )
 
-custom_config = r'--oem 3 --psm 6'
+    text = pytesseract.image_to_string(thresh)
 
-text = pytesseract.image_to_string(
-    img,
-    config=custom_config
-)
-
-print("\n============================")
-print(" EXTRACTED TEXT ")
-print("============================\n")
-
-print(text)
-
-print("\n============================")
+    return text.strip()

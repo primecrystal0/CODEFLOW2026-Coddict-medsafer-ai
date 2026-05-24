@@ -1,0 +1,13 @@
+flask
+flask-cors
+groq
+pymongo
+python-dotenv
+pillow
+pytesseract
+opencv-python
+numpy
+requests
+ultralytics
+torch
+pyttsx3

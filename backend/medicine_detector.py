@@ -1,87 +1,28 @@
-import pymongo
-import os
-from dotenv import load_dotenv
-from rapidfuzz import fuzz
+def detect_medicine(text):
 
-load_dotenv()
+    medicines = {
+        "Paracetamol": ["paracetamol", "acetaminophen", "dolo", "crocin"],
+        "Ibuprofen": ["ibuprofen", "brufen", "advil"],
+        "Aspirin": ["aspirin", "ecosprin"],
+        "Metformin": ["metformin", "glucophage"],
+        "Warfarin": ["warfarin", "coumadin"]
+    }
 
-client = pymongo.MongoClient(
-    os.getenv("MONGO_URI")
-)
+    text = text.lower()
 
-db = client.medsafer_db
+    best_match = "Unknown Medicine"
+    confidence = 0
 
-collection = db.indian_meds
+    for med, keywords in medicines.items():
 
+        score = 0
 
-def detect_medicines(extracted_text):
+        for word in keywords:
+            if word in text:
+                score += 1
 
-    detected_medicines = []
-    dosages = []
-    risks = []
+        if score > confidence:
+            confidence = score
+            best_match = med
 
-    try:
-
-        search_text = extracted_text.lower().strip()
-
-        medicines = collection.find()
-
-        for med in medicines:
-
-            brand_name = med.get(
-                "brand_name",
-                ""
-            ).lower()
-
-            exact_match = brand_name in search_text
-
-            fuzzy_score = fuzz.partial_ratio(
-                brand_name,
-                search_text
-            )
-
-            if exact_match or fuzzy_score > 80:
-
-                if med["brand_name"] not in detected_medicines:
-
-                    detected_medicines.append(
-                        med["brand_name"]
-                    )
-
-                    dosages.append(
-                        med.get(
-                            "standard_dosage",
-                            "Not Available"
-                        )
-                    )
-
-                    risks.append(
-                        med.get(
-                            "common_risk",
-                            "No risk data"
-                        )
-                    )
-
-        if not detected_medicines:
-
-            return (
-                ["Unknown Medicine"],
-                ["Not Available"],
-                ["No risk data found"]
-            )
-
-        return (
-            detected_medicines,
-            dosages,
-            risks
-        )
-
-    except Exception as e:
-
-        print(e)
-
-        return (
-            ["Detection Failed"],
-            ["Unknown"],
-            ["Unknown"]
-        )
+    return best_match
