@@ -1,28 +1,36 @@
+import re
+
 def detect_medicine(text):
 
     medicines = {
-        "Paracetamol": ["paracetamol", "acetaminophen", "dolo", "crocin"],
-        "Ibuprofen": ["ibuprofen", "brufen", "advil"],
+        "Paracetamol": ["paracetamol", "dolo", "acetaminophen", "tylenol"],
+        "Ibuprofen": ["ibuprofen", "brufen", "advil", "pain relief", "pain relieg"],
         "Aspirin": ["aspirin", "ecosprin"],
-        "Metformin": ["metformin", "glucophage"],
-        "Warfarin": ["warfarin", "coumadin"]
+        "Metformin": ["metformin"],
+        "Warfarin": ["warfarin"]
     }
 
     text = text.lower()
 
     best_match = "Unknown Medicine"
-    confidence = 0
+    best_score = 0
 
     for med, keywords in medicines.items():
 
         score = 0
 
-        for word in keywords:
-            if word in text:
+        for kw in keywords:
+
+            # fuzzy match (handles OCR mistakes)
+            if kw in text:
+                score += 2
+
+            # partial match (important for OCR errors)
+            elif any(word in text for word in kw.split()):
                 score += 1
 
-        if score > confidence:
-            confidence = score
+        if score > best_score:
+            best_score = score
             best_match = med
 
     return best_match

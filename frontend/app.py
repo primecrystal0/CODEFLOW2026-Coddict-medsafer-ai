@@ -19,8 +19,35 @@ if os.path.exists(css_path):
     with open(css_path, "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+# ---------------- HEADER ----------------
 st.markdown("<h1 class='main-title'>💊 MedSafer AI</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>AI Powered Drug Interaction Warning System</p>", unsafe_allow_html=True)
+
+# ---------------- ELDERLY MODE ----------------
+elderly_mode = st.toggle("👴 Elderly Friendly Mode")
+
+if elderly_mode:
+    st.markdown("""
+    <style>
+    html, body, [class*="css"] {
+        font-size: 24px !important;
+    }
+    button {
+        height: 70px !important;
+        font-size: 24px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ---------------- PATIENT INFO ----------------
+st.subheader("🧑 Patient Information")
+
+age = st.number_input("Enter Age", min_value=1, max_value=120, value=25)
+
+conditions = st.multiselect(
+    "Pre-existing conditions",
+    ["None", "Diabetes", "Heart Disease", "Liver Disease", "Kidney Disease", "Asthma"]
+)
 
 # ---------------- INPUT ----------------
 uploaded = st.file_uploader("📸 Upload Pill Bottle", type=["png", "jpg", "jpeg"])
@@ -28,6 +55,7 @@ camera = st.camera_input("📷 Or Scan Using Camera")
 
 image_file = uploaded if uploaded else camera
 
+# ---------------- PROCESS ----------------
 if image_file:
 
     image = Image.open(image_file)
@@ -36,19 +64,20 @@ if image_file:
     with st.spinner("🧠 AI analyzing medicine..."):
         time.sleep(1)
 
-        # ---------------- FIXED FILE UPLOAD ----------------
         files = {
-            "image": (
-                "image.jpg",
-                image_file.getvalue(),
-                "image/jpeg"
-            )
+            "image": ("image.jpg", image_file.getvalue(), "image/jpeg")
+        }
+
+        data = {
+            "age": age,
+            "conditions": ",".join(conditions)
         }
 
         try:
             response = requests.post(
                 "http://localhost:5000/analyze",
                 files=files,
+                data=data,
                 timeout=60
             )
 
@@ -59,12 +88,7 @@ if image_file:
                 st.write(response.text)
                 st.stop()
 
-            try:
-                result = response.json()
-            except:
-                st.error("Invalid JSON from backend")
-                st.write(response.text)
-                st.stop()
+            result = response.json()
 
         except Exception as e:
             st.error(f"Backend not reachable: {e}")
@@ -96,7 +120,7 @@ if image_file:
     warnings = result.get("warnings", [])
 
     if warnings:
-        st.subheader("🚨 Warnings")
+        st.subheader("🚨 Drug Interaction Warnings")
 
         engine = pyttsx3.init()
         speech = "Warning detected."
